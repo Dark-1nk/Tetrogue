@@ -4,16 +4,15 @@ using UnityEngine;
 
 public class Tetromino : MonoBehaviour
 {
-    // Start is called before the first frame update
+    float fall = 0;
+    public float fallSpeed = 1;
     void Start()
     {
-        
-    }
 
-    // Update is called once per frame
+    }
     void Update()
     {
-        
+        CheckUserInput();
     }
 
     void CheckUserInput()
@@ -30,9 +29,23 @@ public class Tetromino : MonoBehaviour
         {
             transform.Rotate(0, 0, 90);
         }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        else if (Input.GetKeyDown(KeyCode.DownArrow) || Time.time - fall >= fallSpeed)
         {
             transform.position += new Vector3(0, -1, 0);
+            fall = Time.time;
         }
+    }
+    
+    bool CheckIsValidPosition()
+    {
+        foreach (Transform mino in transform)
+        {
+            Vector2 pos = FindObjectOfType<Game>().Round (mino.position);
+            if (FindObjectOfType<Game>().CheckIsInsideGrid(pos) == false)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
