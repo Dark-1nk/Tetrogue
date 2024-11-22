@@ -263,7 +263,7 @@ GameObject:
   - component: {fileID: 3776200440285463990}
   - component: {fileID: 8788449882827775569}
   m_Layer: 0
-  m_Name: Tetramino L
+  m_Name: Tetromino L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -300,6 +300,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee6cb8642ff518842a92426393efdf37, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fallSpeed: 1
+  allowRoatation: 1
+  limitRotation: 0
 --- !u!1 &5991068539657078299
 GameObject:
   m_ObjectHideFlags: 0
