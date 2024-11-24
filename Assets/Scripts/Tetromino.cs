@@ -25,7 +25,7 @@ public class Tetromino : MonoBehaviour
             
             if (CheckIsValidPosition())
             {
-
+                FindObjectOfType<Game>().UpdateGrid(this);
             }
             else
             {
@@ -38,7 +38,7 @@ public class Tetromino : MonoBehaviour
 
             if (CheckIsValidPosition())
             {
-
+                FindObjectOfType<Game>().UpdateGrid(this);
             }
             else
             {
@@ -78,7 +78,7 @@ public class Tetromino : MonoBehaviour
                 //if you are in the grid
                 if (CheckIsValidPosition())
                 {
-
+                    FindObjectOfType<Game>().UpdateGrid(this);
                 }
                 //if the piece's next movement will put it outside of the grid
                 else
@@ -116,11 +116,15 @@ public class Tetromino : MonoBehaviour
 
             if (CheckIsValidPosition())
             {
-
+                FindObjectOfType<Game>().UpdateGrid(this);
             }
             else
             {
                 transform.position += new Vector3(0, 1, 0);
+
+                enabled = false;
+
+                FindObjectOfType<Game>().SpawnNextTetromino();
             }
 
             fall = Time.time;
@@ -139,6 +143,11 @@ public class Tetromino : MonoBehaviour
             if (FindObjectOfType<Game>().CheckIsInsideGrid(pos) == false)
             {
                 return false;
+            }
+
+            if (FindObjectOfType<Game>().GetTransformAtGridPosition(pos) != null && FindObjectOfType<Game>().GetTransformAtGridPosition(pos).parent != transform)
+            {
+
             }
         }
         return true;
