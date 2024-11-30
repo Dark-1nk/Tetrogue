@@ -14,7 +14,7 @@ public class Player : MonoBehaviour
     public ParticleSystem smokeFX;
     public Vector2 overlapBoxSize = new Vector2(1f, 1f);
 
-    bool isLocked = false;
+    bool isLocked;
 
     [Header("Collider")]
     public BoxCollider2D myBodyCollider;
@@ -48,6 +48,21 @@ public class Player : MonoBehaviour
     public float maxFallSpeed = 18f;
     public float fallSpeedMultiplier = 2f;
 
+    [Header("WallCheck")]
+    public Transform wallCheckPos;
+    public Vector2 wallCheckSize = new Vector2(0.49f, 0.03f);
+
+    [Header("WallMovement")]
+    public float wallSlideSpeed = 2;
+    bool isWallSliding;
+
+    //Wall Jumping
+    bool isWallJumping;
+    float wallJumpDirection;
+    float wallJumpTime = 0.5f;
+    float wallJumpTimer;
+    public Vector2 wallJumpPower = new Vector2(5f, 10f);
+
     private void Start()
     {
         trailRenderer = GetComponent<TrailRenderer>();
@@ -64,22 +79,23 @@ public class Player : MonoBehaviour
             return;
         }
 
-        if (isLocked)
+        animator.SetFloat("magnitude", rb.velocity.magnitude);
+        animator.SetBool("isWallSliding", isWallSliding);
+
+        if (isDashing)
         {
-            if (Input.GetKeyDown(KeyCode.C))
-            {
-                isLocked = false;
-            }
+            return;
+        }
+        GroundCheck();
+        ProcessGravity();
+        ProcessWallSlide();
+        ProcessWallJump();
+        Die();
 
-            animator.SetFloat("magnitude", rb.velocity.magnitude);
-
-            if (isDashing)
-            {
-                return;
-            }
-            GroundCheck();
-            ProcessGravity();
-            Die();
+        if (!isWallJumping)
+        {
+            rb.velocity = new Vector2(horizontalMovement * moveSpeed, rb.velocity.y);
+            Flip();
         }
     }
 
@@ -134,6 +150,32 @@ public class Player : MonoBehaviour
                 JumpFX();
             }
         }
+
+        //Wall Jump
+        if (context.performed && wallJumpTimer > 0f)
+        {
+            isWallJumping = true;
+            rb.velocity = new Vector2(wallJumpDirection * wallJumpPower.x, wallJumpPower.y);
+            wallJumpTimer = 0;
+            JumpFX();
+
+            if (transform.localScale.x != wallJumpDirection)
+            {
+                isFacingRight = !isFacingRight;
+                Vector3 ls = transform.localScale;
+                ls.x *= -1f;
+                transform.localScale = ls;
+            }
+
+            Invoke(nameof(CancelWallJump), wallJumpTime + 0.1f);
+        }
+
+        if (context.performed && isDashing == true)
+        {
+            rb.velocity = new Vector2((float)(rb.velocity.x * 1.5), jumpPower);
+            jumpsRemaining--;
+            JumpFX();
+        }
     }
 
     private void JumpFX()
@@ -152,6 +194,10 @@ public class Player : MonoBehaviour
             isGrounded = false;
         }
     }
+    private bool WallCheck()
+    {
+        return (Physics2D.OverlapBox(wallCheckPos.position, wallCheckSize, 0, blockLayer));
+    }
     private void ProcessGravity()
     {
         if (rb.velocity.y < 0)
@@ -163,6 +209,38 @@ public class Player : MonoBehaviour
         {
             rb.gravityScale = baseGravity;
         }
+    }
+    private void ProcessWallSlide()
+    {
+        if (!isGrounded & WallCheck() & horizontalMovement != 0)
+        {
+            isWallSliding = true;
+            rb.velocity = new Vector2(rb.velocity.x, Mathf.Max(rb.velocity.y, -wallSlideSpeed));
+        }
+        else
+        {
+            isWallSliding = false;
+        }
+    }
+    private void ProcessWallJump()
+    {
+        if (isWallSliding)
+        {
+            isWallJumping = false;
+            wallJumpDirection = -transform.localScale.x;
+            wallJumpTimer = wallJumpTime;
+
+            CancelInvoke(nameof(CancelWallJump));
+        }
+        else if (wallJumpTimer > 0f)
+        {
+            wallJumpTimer -= Time.deltaTime;
+        }
+    }
+
+    private void CancelWallJump()
+    {
+        isWallJumping = false;
     }
 
     private void Flip()
@@ -203,6 +281,8 @@ public class Player : MonoBehaviour
     {
         Gizmos.color = Color.white;
         Gizmos.DrawCube(groundCheckPos.position, groundCheckSize);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawCube(wallCheckPos.position, wallCheckSize);
     }
 
     public void ExitGame(InputAction.CallbackContext context)
