@@ -6,15 +6,37 @@ public class Tetromino : MonoBehaviour
 {
     float fall = 0;
     public float fallSpeed = 1;
-    public bool allowRoatation = true;
+    public bool allowRotation = true;
     public bool limitRotation = false;
+    public LayerMask blockLayer;
+
+    bool isLocked;
     void Start()
     {
 
     }
     void Update()
     {
-        CheckUserInput();
+        
+
+        if (isLocked)
+        {
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                isLocked = false;
+            }
+            return;
+        }
+
+        if (!isLocked)
+        {
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                isLocked = true;
+            }
+
+            CheckUserInput();
+        }
     }
 
     void CheckUserInput()
@@ -22,7 +44,7 @@ public class Tetromino : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
             transform.position += new Vector3(1, 0, 0);
-            
+
             if (CheckIsValidPosition())
             {
                 FindObjectOfType<Game>().UpdateGrid(this);
@@ -46,10 +68,10 @@ public class Tetromino : MonoBehaviour
             }
         }
         //this is a little bit convoluted, but this entire condition determines how a piece will rotate.
-        else if (Input.GetKeyDown(KeyCode.C) || Input.GetKeyDown(KeyCode.UpArrow))
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
         {
             //if rotation is even allowed (in other words, if it's not an O tetromino) 
-            if (allowRoatation)
+            if (allowRotation)
             {
                 //if rotation is allowed, but not only with two positions, (like the Z, S, and the I tetromino)
                 if (limitRotation)
@@ -121,6 +143,7 @@ public class Tetromino : MonoBehaviour
             else
             {
                 transform.position += new Vector3(0, 1, 0);
+                FindObjectOfType<Game>().DeleteRow();
 
                 enabled = false;
 
@@ -130,6 +153,8 @@ public class Tetromino : MonoBehaviour
             fall = Time.time;
         }
     }
+
+
     /// <summary>
     /// This function essentially makes it so that the "game" script, which contains the grid dimensions, is asked whether or not the minos in the tetromino are all inside of the grid. This is used in the movement of the tetrominos to check if the desired movement is possible. 
     /// In other words, its an inverted box collider for the grid.
@@ -147,7 +172,7 @@ public class Tetromino : MonoBehaviour
 
             if (FindObjectOfType<Game>().GetTransformAtGridPosition(pos) != null && FindObjectOfType<Game>().GetTransformAtGridPosition(pos).parent != transform)
             {
-
+                return false;
             }
         }
         return true;
