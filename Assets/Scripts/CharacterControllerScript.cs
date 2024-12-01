@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
-public class Player : MonoBehaviour
+public class CharacterControllerScript : MonoBehaviour
 {
 
     public Rigidbody2D rb;
@@ -13,6 +13,8 @@ public class Player : MonoBehaviour
     bool isFacingRight = true;
     public ParticleSystem smokeFX;
     public Vector2 overlapBoxSize = new Vector2(1f, 1f);
+    AudioManager audioManager;
+    public Canvas victoryCanvas;
 
     bool isLocked;
 
@@ -66,6 +68,7 @@ public class Player : MonoBehaviour
     private void Start()
     {
         trailRenderer = GetComponent<TrailRenderer>();
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
     }
     void Update()
     {
@@ -79,25 +82,34 @@ public class Player : MonoBehaviour
             return;
         }
 
-        animator.SetFloat("magnitude", rb.velocity.magnitude);
-        animator.SetBool("isWallSliding", isWallSliding);
-
-        if (isDashing)
+        if (isLocked)
         {
-            return;
-        }
-        GroundCheck();
-        ProcessGravity();
-        ProcessWallSlide();
-        ProcessWallJump();
-        Die();
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                isLocked = false;
+            }
 
-        if (!isWallJumping)
-        {
-            rb.velocity = new Vector2(horizontalMovement * moveSpeed, rb.velocity.y);
-            Flip();
+            animator.SetFloat("magnitude", rb.velocity.magnitude);
+            animator.SetBool("isWallSliding", isWallSliding);
+
+            if (isDashing)
+            {
+                return;
+            }
+            GroundCheck();
+            ProcessGravity();
+            ProcessWallSlide();
+            ProcessWallJump();
+            Die();
+
+            if (!isWallJumping)
+            {
+                rb.velocity = new Vector2(horizontalMovement * moveSpeed, rb.velocity.y);
+                Flip();
+            }
         }
     }
+        
 
     public void Move(InputAction.CallbackContext context)
     {
@@ -142,12 +154,15 @@ public class Player : MonoBehaviour
                 rb.velocity = new Vector2(rb.velocity.x, jumpPower);
                 jumpsRemaining--;
                 JumpFX();
+                audioManager.PlaySFX(audioManager.jump);
             }
             else if (context.canceled)
             {
+                
                 rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.3f);
                 jumpsRemaining--;
                 JumpFX();
+                audioManager.PlaySFX(audioManager.jump);
             }
         }
 
@@ -158,6 +173,7 @@ public class Player : MonoBehaviour
             rb.velocity = new Vector2(wallJumpDirection * wallJumpPower.x, wallJumpPower.y);
             wallJumpTimer = 0;
             JumpFX();
+            audioManager.PlaySFX(audioManager.jump);
 
             if (transform.localScale.x != wallJumpDirection)
             {
@@ -168,13 +184,6 @@ public class Player : MonoBehaviour
             }
 
             Invoke(nameof(CancelWallJump), wallJumpTime + 0.1f);
-        }
-
-        if (context.performed && isDashing == true)
-        {
-            rb.velocity = new Vector2((float)(rb.velocity.x * 1.5), jumpPower);
-            jumpsRemaining--;
-            JumpFX();
         }
     }
 
@@ -272,6 +281,14 @@ public class Player : MonoBehaviour
         }
     }
 
+    public void Victory()
+    {
+        if (isGrounded)
+        {
+            victoryCanvas.gameObject.SetActive(true);
+            Time.timeScale = 0;
+        } 
+    }
     private void Die()
     {
 

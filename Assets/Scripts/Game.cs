@@ -5,22 +5,32 @@ using UnityEngine;
 
 public class Game : MonoBehaviour
 {
-
     public static int gridWidth = 10;
     public static int gridHeight = 20;
+
+    public Canvas gameOverCanvas; // Reference to the Game Over Canvas
+    AudioManager audioManager;
 
     public static Transform[,] grid = new Transform[gridWidth, gridHeight];
 
     void Start()
     {
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
+
+        // Ensure the Game Over Canvas is hidden at the start
+        if (gameOverCanvas != null)
+        {
+            gameOverCanvas.gameObject.SetActive(false);
+        }
+
         SpawnNextTetromino();
     }
 
-    public bool IsRowFullAt (int y)
+    public bool IsRowFullAt(int y)
     {
         for (int x = 0; x < gridWidth; ++x)
         {
-            if(grid[x, y] == null)
+            if (grid[x, y] == null)
             {
                 return false;
             }
@@ -29,17 +39,17 @@ public class Game : MonoBehaviour
         return true;
     }
 
-    public void DeleteMinoAt (int y)
+    public void DeleteMinoAt(int y)
     {
         for (int x = 0; x < gridWidth; ++x)
         {
-            Destroy (grid[x, y].gameObject);
+            Destroy(grid[x, y].gameObject);
 
-            grid[x,y] = null;
+            grid[x, y] = null;
         }
     }
 
-    public void MoveRowDown (int y)
+    public void MoveRowDown(int y)
     {
         for (int x = 0; x < gridWidth; ++x)
         {
@@ -56,22 +66,23 @@ public class Game : MonoBehaviour
     {
         for (int i = y; i < gridHeight; ++i)
         {
-            MoveRowDown (i);
+            MoveRowDown(i);
         }
     }
+
     public void DeleteRow()
     {
-        for(int y = 0; y < gridHeight; y++)
+        for (int y = 0; y < gridHeight; y++)
         {
             if (IsRowFullAt(y))
             {
+                audioManager.PlaySFX(audioManager.clearLine);
                 DeleteMinoAt(y);
-                MoveAllRowsDown (y+1);
+                MoveAllRowsDown(y + 1);
                 --y;
             }
         }
     }
-
 
     public void UpdateGrid(Tetromino tetromino)
     {
@@ -79,28 +90,31 @@ public class Game : MonoBehaviour
         {
             for (int x = 0; x < gridWidth; ++x)
             {
-                if(grid[x, y] != null)
+                if (grid[x, y] != null)
                 {
-                    if(grid[x, y].parent == tetromino.transform)
+                    if (grid[x, y].parent == tetromino.transform)
                     {
                         grid[x, y] = null;
                     }
                 }
             }
         }
+
         foreach (Transform mino in tetromino.transform)
         {
-            Vector2 pos = Round (mino.position);
+            Vector2 pos = Round(mino.position);
             if (pos.y < gridHeight)
             {
                 grid[(int)pos.x, (int)pos.y] = mino;
             }
         }
+
+        CheckGameOverCondition(); // Check for game over after updating the grid
     }
 
     public Transform GetTransformAtGridPosition(Vector2 pos)
     {
-        if(pos.y > gridHeight - 1)
+        if (pos.y > gridHeight - 1)
         {
             return null;
         }
@@ -115,13 +129,15 @@ public class Game : MonoBehaviour
     {
         GameObject nextTetromino = (GameObject)Instantiate(Resources.Load(GetRandomTetromino(), typeof(GameObject)), new Vector2(5.0f, 18.0f), Quaternion.identity);
     }
+
     public bool CheckIsInsideGrid(Vector2 pos)
     {
-        return ((int)pos.x >= 0 && (int)pos.x < gridWidth &&(int)pos.y >= 0);
+        return ((int)pos.x >= 0 && (int)pos.x < gridWidth && (int)pos.y >= 0);
     }
+
     public Vector2 Round(Vector2 pos)
     {
-        return new Vector2 (Mathf.Round(pos.x), Mathf.Round(pos.y));
+        return new Vector2(Mathf.Round(pos.x), Mathf.Round(pos.y));
     }
 
     string GetRandomTetromino()
@@ -155,5 +171,30 @@ public class Game : MonoBehaviour
         }
 
         return randomTetrominoName;
+    }
+
+    void CheckGameOverCondition()
+    {
+        for (int x = 0; x < gridWidth; ++x)
+        {
+            if (grid[x, gridHeight + 1] != null) // Check if any block is above the grid
+            {
+                Debug.Log("Game Over!");
+                TriggerGameOver();
+                break;
+            }
+        }
+    }
+
+    void TriggerGameOver()
+    {
+        // Show the Game Over Canvas
+        if (gameOverCanvas != null)
+        {
+            gameOverCanvas.gameObject.SetActive(true);
+        }
+
+        // Stop the game
+        Time.timeScale = 0;
     }
 }
