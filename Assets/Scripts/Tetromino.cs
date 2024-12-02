@@ -12,7 +12,7 @@ public class Tetromino : MonoBehaviour
 
     private AudioManager audioManager;
 
-    bool isLocked;
+    public bool isLocked;
 
     void Start()
     {
@@ -24,20 +24,25 @@ public class Tetromino : MonoBehaviour
 
     void Update()
     {
+        // If the Tetromino is locked, allow toggling the lock state
         if (isLocked)
         {
-            if (Input.GetKeyDown(KeyCode.C))
+            if (Input.GetKeyDown(KeyCode.C)) // Unlock with 'C'
             {
                 isLocked = false;
+                Debug.Log("Piece unlocked.");
             }
-            return;
+            return; // Skip all other input while locked
         }
 
+        // If not locked, allow all movement and rotation
         if (!isLocked)
         {
-            if (Input.GetKeyDown(KeyCode.C))
+            if (Input.GetKeyDown(KeyCode.C)) // Lock with 'C'
             {
                 isLocked = true;
+                Debug.Log("Piece locked.");
+                return; // Ensure no movement happens during the locking frame
             }
 
             CheckUserInput();
@@ -144,6 +149,7 @@ public class Tetromino : MonoBehaviour
         {
             audioManager.PlaySFX(audioManager.placeBlock);
             transform.position += new Vector3(0, 1, 0);
+            FindObjectOfType<Game>().CheckGameOver();
             FindObjectOfType<Game>().DeleteRow();
             enabled = false;
             FindObjectOfType<Game>().SpawnNextTetromino();
@@ -163,6 +169,7 @@ public class Tetromino : MonoBehaviour
         transform.position += new Vector3(0, 1, 0);
 
         // Update the grid and lock the Tetromino in place
+        FindObjectOfType<Game>().CheckGameOver();
         FindObjectOfType<Game>().UpdateGrid(this);
         FindObjectOfType<Game>().DeleteRow();
         enabled = false;

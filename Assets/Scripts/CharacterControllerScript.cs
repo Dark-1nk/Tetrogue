@@ -12,14 +12,16 @@ public class CharacterControllerScript : MonoBehaviour
     public Animator animator;
     bool isFacingRight = true;
     public ParticleSystem smokeFX;
-    public Vector2 overlapBoxSize = new Vector2(1f, 1f);
     AudioManager audioManager;
     public Canvas victoryCanvas;
-
-    bool isLocked;
+    public Canvas gameOverCanvas;
+    public Canvas pauseMenu;
+    public bool isPaused = false;
 
     [Header("Collider")]
     public BoxCollider2D myBodyCollider;
+    public Vector2 overlapBoxOffset = Vector2.zero;
+    public Vector2 overlapBoxSize = new(0.5f, 0.5f);
 
 
     [Header("Movement")]
@@ -41,7 +43,7 @@ public class CharacterControllerScript : MonoBehaviour
 
     [Header("GroundCheck")]
     public Transform groundCheckPos;
-    public Vector2 groundCheckSize = new Vector2(0.49f, 0.03f);
+    public Vector2 groundCheckSize = new(0.49f, 0.03f);
     public LayerMask blockLayer;
     bool isGrounded;
 
@@ -52,7 +54,7 @@ public class CharacterControllerScript : MonoBehaviour
 
     [Header("WallCheck")]
     public Transform wallCheckPos;
-    public Vector2 wallCheckSize = new Vector2(0.49f, 0.03f);
+    public Vector2 wallCheckSize = new(0.49f, 0.03f);
 
     [Header("WallMovement")]
     public float wallSlideSpeed = 2;
@@ -63,31 +65,40 @@ public class CharacterControllerScript : MonoBehaviour
     float wallJumpDirection;
     float wallJumpTime = 0.5f;
     float wallJumpTimer;
-    public Vector2 wallJumpPower = new Vector2(5f, 10f);
+    public Vector2 wallJumpPower = new(5f, 10f);
 
     private void Start()
     {
         trailRenderer = GetComponent<TrailRenderer>();
         audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
+        Time.timeScale = 1;
     }
     void Update()
     {
-
-        if (!isLocked)
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (Input.GetKeyDown(KeyCode.C))
+            if (isPaused)
             {
-                isLocked = true;
+                UnpauseGame();
             }
+            else
+            {
+                PauseGame();
+            }
+        }
+
+        if (CheckIfCrushed())
+        {
+            Die();
+        }
+
+        if (FindObjectOfType<Tetromino>().isLocked == false)
+        {
             return;
         }
 
-        if (isLocked)
+        if (FindObjectOfType<Tetromino>().isLocked == true)
         {
-            if (Input.GetKeyDown(KeyCode.C))
-            {
-                isLocked = false;
-            }
 
             animator.SetFloat("magnitude", rb.velocity.magnitude);
             animator.SetBool("isWallSliding", isWallSliding);
@@ -100,7 +111,6 @@ public class CharacterControllerScript : MonoBehaviour
             ProcessGravity();
             ProcessWallSlide();
             ProcessWallJump();
-            Die();
 
             if (!isWallJumping)
             {
@@ -109,7 +119,20 @@ public class CharacterControllerScript : MonoBehaviour
             }
         }
     }
-        
+
+    public void PauseGame()
+    {
+        Time.timeScale = 0;
+        pauseMenu.gameObject.SetActive(true); // Show the pause menu
+        isPaused = true;
+    }
+
+    public void UnpauseGame()
+    {
+        Time.timeScale = 1;
+        pauseMenu.gameObject.SetActive(false); // Hide the pause menu
+        isPaused = false;
+    }
 
     public void Move(InputAction.CallbackContext context)
     {
@@ -147,43 +170,51 @@ public class CharacterControllerScript : MonoBehaviour
     }
     public void Jump(InputAction.CallbackContext context)
     {
-        if (jumpsRemaining > 0)
+        if (FindObjectOfType<Tetromino>().isLocked == true)
         {
-            if (context.performed)
+            if (jumpsRemaining > 0)
             {
-                rb.velocity = new Vector2(rb.velocity.x, jumpPower);
-                jumpsRemaining--;
-                JumpFX();
-                audioManager.PlaySFX(audioManager.jump);
+                if (context.performed)
+                {
+                    rb.velocity = new Vector2(rb.velocity.x, jumpPower);
+                    jumpsRemaining--;
+                    JumpFX();
+                    audioManager.PlaySFX(audioManager.jump);
+                }
+                else if (context.canceled)
+                {
+
+                    rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.3f);
+                    jumpsRemaining--;
+                    JumpFX();
+                    audioManager.PlaySFX(audioManager.jump);
+                }
             }
-            else if (context.canceled)
+
+            //Wall Jump
+            if (context.performed && wallJumpTimer > 0f)
             {
-                
-                rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.3f);
-                jumpsRemaining--;
+                isWallJumping = true;
+                rb.velocity = new Vector2(wallJumpDirection * wallJumpPower.x, wallJumpPower.y);
+                wallJumpTimer = 0;
                 JumpFX();
                 audioManager.PlaySFX(audioManager.jump);
+
+                if (transform.localScale.x != wallJumpDirection)
+                {
+                    isFacingRight = !isFacingRight;
+                    Vector3 ls = transform.localScale;
+                    ls.x *= -1f;
+                    transform.localScale = ls;
+                }
+
+                Invoke(nameof(CancelWallJump), wallJumpTime + 0.1f);
             }
         }
 
-        //Wall Jump
-        if (context.performed && wallJumpTimer > 0f)
+        else
         {
-            isWallJumping = true;
-            rb.velocity = new Vector2(wallJumpDirection * wallJumpPower.x, wallJumpPower.y);
-            wallJumpTimer = 0;
-            JumpFX();
-            audioManager.PlaySFX(audioManager.jump);
-
-            if (transform.localScale.x != wallJumpDirection)
-            {
-                isFacingRight = !isFacingRight;
-                Vector3 ls = transform.localScale;
-                ls.x *= -1f;
-                transform.localScale = ls;
-            }
-
-            Invoke(nameof(CancelWallJump), wallJumpTime + 0.1f);
+            return;
         }
     }
 
@@ -267,18 +298,13 @@ public class CharacterControllerScript : MonoBehaviour
             }
         }
     }
-
-    private void CheckForCrush()
+    bool CheckIfCrushed()
     {
-        // Perform an overlap check at the player's position
-        Collider2D overlappingCollider = Physics2D.OverlapBox(transform.position, overlapBoxSize, 0f, blockLayer);
+        // Get the world position of the overlap box
+        Vector2 boxCenter = (Vector2)transform.position + overlapBoxOffset;
 
-        if (overlappingCollider != null)
-        {
-            // Player is crushed
-            Debug.Log("Player is crushed!");
-            Die();
-        }
+        // Check for any objects in the tetromino layer overlapping the box
+        return Physics2D.OverlapBox(boxCenter, overlapBoxSize, 0f, blockLayer) != null;
     }
 
     public void Victory()
@@ -291,7 +317,10 @@ public class CharacterControllerScript : MonoBehaviour
     }
     private void Die()
     {
-
+        
+         FindObjectOfType<AudioManager>().StopMusic();
+         gameOverCanvas.gameObject.SetActive(true);
+         Time.timeScale = 0;
     }
 
     private void OnDrawGizmosSelected()
@@ -300,15 +329,9 @@ public class CharacterControllerScript : MonoBehaviour
         Gizmos.DrawCube(groundCheckPos.position, groundCheckSize);
         Gizmos.color = Color.blue;
         Gizmos.DrawCube(wallCheckPos.position, wallCheckSize);
-    }
 
-    public void ExitGame(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-        {
-            Application.Quit();
-        }
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(transform.position, overlapBoxSize);
     }
-
 }
 

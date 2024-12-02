@@ -24,6 +24,7 @@ public class Game : MonoBehaviour
         }
 
         SpawnNextTetromino();
+
     }
 
     public bool IsRowFullAt(int y)
@@ -108,8 +109,6 @@ public class Game : MonoBehaviour
                 grid[(int)pos.x, (int)pos.y] = mino;
             }
         }
-
-        CheckGameOverCondition(); // Check for game over after updating the grid
     }
 
     public Transform GetTransformAtGridPosition(Vector2 pos)
@@ -128,6 +127,7 @@ public class Game : MonoBehaviour
     public void SpawnNextTetromino()
     {
         GameObject nextTetromino = (GameObject)Instantiate(Resources.Load(GetRandomTetromino(), typeof(GameObject)), new Vector2(5.0f, 18.0f), Quaternion.identity);
+        nextTetromino.GetComponent<Tetromino>().isLocked = false;
     }
 
     public bool CheckIsInsideGrid(Vector2 pos)
@@ -173,11 +173,11 @@ public class Game : MonoBehaviour
         return randomTetrominoName;
     }
 
-    void CheckGameOverCondition()
+    public void CheckGameOver()
     {
         for (int x = 0; x < gridWidth; ++x)
         {
-            if (grid[x, gridHeight + 1] != null) // Check if any block is above the grid
+            if (grid[x, gridHeight - 1] != null) // Check if any block is above the grid
             {
                 Debug.Log("Game Over!");
                 TriggerGameOver();
