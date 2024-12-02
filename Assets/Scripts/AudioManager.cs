@@ -32,6 +32,7 @@ public class AudioManager : MonoBehaviour
         sfxVolumeSlider.onValueChanged.AddListener(OnSFXVolumeChanged);
 
         musicSource.clip = background;
+        musicSource.loop = true;
         musicSource.Play();
     }
 

@@ -17,6 +17,7 @@ public class CharacterControllerScript : MonoBehaviour
     public Canvas gameOverCanvas;
     public Canvas pauseMenu;
     public bool isPaused = false;
+    public int collects = 4;
 
     [Header("Collider")]
     public BoxCollider2D myBodyCollider;
@@ -87,11 +88,6 @@ public class CharacterControllerScript : MonoBehaviour
             }
         }
 
-        if (CheckIfCrushed())
-        {
-            Die();
-        }
-
         if (FindObjectOfType<Tetromino>().isLocked == false)
         {
             return;
@@ -141,9 +137,12 @@ public class CharacterControllerScript : MonoBehaviour
 
     public void Dash(InputAction.CallbackContext context)
     {
-        if (context.performed && canDash)
+        if (FindObjectOfType<Tetromino>().isLocked == true)
         {
-            StartCoroutine(DashCoroutine());
+            if (context.performed && canDash)
+            {
+                StartCoroutine(DashCoroutine());
+            }
         }
     }
 
@@ -298,29 +297,23 @@ public class CharacterControllerScript : MonoBehaviour
             }
         }
     }
-    bool CheckIfCrushed()
-    {
-        // Get the world position of the overlap box
-        Vector2 boxCenter = (Vector2)transform.position + overlapBoxOffset;
 
-        // Check for any objects in the tetromino layer overlapping the box
-        return Physics2D.OverlapBox(boxCenter, overlapBoxSize, 0f, blockLayer) != null;
+    void OnTriggerStay2D(Collider2D other)
+    {
+        if (other.CompareTag("Goal"))
+        {
+            if (isGrounded)
+            {
+                audioManager.PlaySFX(audioManager.victory);
+                Victory();
+            }
+        }
     }
 
     public void Victory()
     {
-        if (isGrounded)
-        {
-            victoryCanvas.gameObject.SetActive(true);
-            Time.timeScale = 0;
-        } 
-    }
-    private void Die()
-    {
-        
-         FindObjectOfType<AudioManager>().StopMusic();
-         gameOverCanvas.gameObject.SetActive(true);
-         Time.timeScale = 0;
+        victoryCanvas.gameObject.SetActive(true);
+        Time.timeScale = 0;
     }
 
     private void OnDrawGizmosSelected()
@@ -331,7 +324,8 @@ public class CharacterControllerScript : MonoBehaviour
         Gizmos.DrawCube(wallCheckPos.position, wallCheckSize);
 
         Gizmos.color = Color.red;
-        Gizmos.DrawWireCube(transform.position, overlapBoxSize);
+        Vector2 boxCenter = (Vector2)transform.position + overlapBoxOffset;
+        Gizmos.DrawWireCube(boxCenter, overlapBoxSize);
     }
 }
 

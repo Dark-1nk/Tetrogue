@@ -8,7 +8,10 @@ public class Tetromino : MonoBehaviour
     public float fallSpeed = 1;
     public bool allowRotation = true;
     public bool limitRotation = false;
+
+    [SerializeField]
     public LayerMask blockLayer;
+    public LayerMask playerLayer;
 
     private AudioManager audioManager;
 
@@ -17,7 +20,6 @@ public class Tetromino : MonoBehaviour
     void Start()
     {
         audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
-
         // Adjust Tetromino position if spawn location is blocked
         AdjustSpawnPosition();
     }
@@ -149,9 +151,9 @@ public class Tetromino : MonoBehaviour
         {
             audioManager.PlaySFX(audioManager.placeBlock);
             transform.position += new Vector3(0, 1, 0);
-            FindObjectOfType<Game>().CheckGameOver();
             FindObjectOfType<Game>().DeleteRow();
             enabled = false;
+            FindObjectOfType<Game>().CheckGameOver();
             FindObjectOfType<Game>().SpawnNextTetromino();
         }
 
@@ -169,10 +171,10 @@ public class Tetromino : MonoBehaviour
         transform.position += new Vector3(0, 1, 0);
 
         // Update the grid and lock the Tetromino in place
-        FindObjectOfType<Game>().CheckGameOver();
         FindObjectOfType<Game>().UpdateGrid(this);
         FindObjectOfType<Game>().DeleteRow();
         enabled = false;
+        FindObjectOfType<Game>().CheckGameOver();
         FindObjectOfType<Game>().SpawnNextTetromino();
     }
 
@@ -189,6 +191,12 @@ public class Tetromino : MonoBehaviour
             if (FindObjectOfType<Game>().GetTransformAtGridPosition(pos) != null && FindObjectOfType<Game>().GetTransformAtGridPosition(pos).parent != transform)
             {
                 return false;
+            }
+            // Check if the position is occupied by a pre-placed block
+            Transform blockAtPos = FindObjectOfType<Game>().GetTransformAtGridPosition(pos);
+            if (blockAtPos != null && blockAtPos.CompareTag("PreplacedBlock")) // Check the tag
+            {
+                return false; // Invalid position due to overlap with pre-placed block
             }
         }
         return true;

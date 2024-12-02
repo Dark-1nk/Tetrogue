@@ -5,11 +5,14 @@ TagManager:
   serializedVersion: 2
   tags:
   - Audio
+  - Block
+  - Goal
+  - PreplacedBlock
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Player
   - Water
   - UI
   - blocks

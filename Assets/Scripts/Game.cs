@@ -22,9 +22,32 @@ public class Game : MonoBehaviour
         {
             gameOverCanvas.gameObject.SetActive(false);
         }
+        InitializePreplacedBlocks();
 
         SpawnNextTetromino();
 
+    }
+
+    void InitializePreplacedBlocks()
+    {
+        // Find all preplaced blocks in the scene
+        GameObject[] preplacedBlocks = GameObject.FindGameObjectsWithTag("PreplacedBlock");
+
+        foreach (GameObject block in preplacedBlocks) // Iterate over GameObjects
+        {
+            Transform blockTransform = block.transform; // Access the Transform of each GameObject
+            Vector2 pos = Round(blockTransform.position);
+
+            // Check if the position is inside the grid bounds
+            if (CheckIsInsideGrid(pos))
+            {
+                grid[(int)pos.x, (int)pos.y] = blockTransform; // Add block to grid
+            }
+            else
+            {
+                Debug.LogWarning($"Preplaced block at {pos} is out of bounds!");
+            }
+        }
     }
 
     public bool IsRowFullAt(int y)
@@ -126,7 +149,7 @@ public class Game : MonoBehaviour
 
     public void SpawnNextTetromino()
     {
-        GameObject nextTetromino = (GameObject)Instantiate(Resources.Load(GetRandomTetromino(), typeof(GameObject)), new Vector2(5.0f, 18.0f), Quaternion.identity);
+        GameObject nextTetromino = (GameObject)Instantiate(Resources.Load(GetRandomTetromino(), typeof(GameObject)), new Vector2(5.0f, 20.0f), Quaternion.identity);
         nextTetromino.GetComponent<Tetromino>().isLocked = false;
     }
 
@@ -179,6 +202,8 @@ public class Game : MonoBehaviour
         {
             if (grid[x, gridHeight - 1] != null) // Check if any block is above the grid
             {
+                audioManager.StopMusic();
+                audioManager.PlaySFX(audioManager.death);
                 Debug.Log("Game Over!");
                 TriggerGameOver();
                 break;
@@ -192,8 +217,9 @@ public class Game : MonoBehaviour
         if (gameOverCanvas != null)
         {
             gameOverCanvas.gameObject.SetActive(true);
+            // Stop the game
+            Time.timeScale = 0;
         }
-
         // Stop the game
         Time.timeScale = 0;
     }
